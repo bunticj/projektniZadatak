@@ -1,4 +1,5 @@
 const mysql = require('mysql');
+const bcrypt = require('bcryptjs');
 
 module.exports = class DB {
   constructor() {
@@ -12,22 +13,30 @@ module.exports = class DB {
 
   //CRUD :
 
-  //CREATE  operations
+  //CREATE  user query operation and hashing password in DB
   addUser(data) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `INSERT INTO user (first_name, last_name, email, password) VALUES (?,?,?,?) `;
-    let params = [data.first_name, data.last_name, data.email, data.password, data.confirmPassword, data.termsOfService];
-    this.connection.query(sqlQuery, params, (error, result) => {
-      if (error) throw error;
-      prResolve(result);
+
+    bcrypt.hash(data.password, 10, (err, hash) => {
+
+      let sqlQuery = `INSERT INTO user (first_name, last_name, email, password) VALUES (?,?,?,?) `;
+      let params = [data.first_name, data.last_name, data.email, hash, data.confirmPassword, data.termsOfService];
+      this.connection.query(sqlQuery, params, (error, result) => {
+        if (error) throw error;
+         prResolve(result);
+      });
+
     });
 
     return pr;
   }
+  
+  
 
+  
   addTopic(data) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -43,7 +52,7 @@ module.exports = class DB {
     return pr;
   }
 
-  addComment(data,param) {
+  addComment(data, param) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
@@ -174,6 +183,7 @@ module.exports = class DB {
     let params = [data.topic_id, data.user_id, data.comment_content, id];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
+      u
       prResolve(result);
     });
 
@@ -224,7 +234,7 @@ module.exports = class DB {
 
   }
 
-//for validation purposes
+  //for validation purposes
   getEmails(data) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -238,6 +248,48 @@ module.exports = class DB {
     return pr;
   }
 
- 
+  
+addUser2(data,{req}) {
+    let prResolve;
+    let pr = new Promise((resolve, reject) => {
+      prResolve = resolve;
+    });
 
+    bcrypt.hash(data.password, 10, (err, hash) => {
+
+      let sqlQuery = `INSERT INTO user (first_name, last_name, email, password) VALUES (?,?,?,?) `;
+      let params = [data.first_name, data.last_name, data.email, hash, data.confirmPassword, data.termsOfService];
+      this.connection.query(sqlQuery, params, (error, result) => {
+        if (error) throw error;
+        this.connection.query(`SELECT LAST_INSERT_ID() as user_id`, (error, result) => {
+          if (error) throw error;
+          const user_id = result[0];
+          console.log(result[0]);
+          
+          req.login(user_id,(err)=>{
+            res.redirect('/');
+          })
+        
+        });
+      
+      });
+
+    });
+
+    return pr;
+  }
+  lastInsertedId(){
+    let prResolve;
+    let pr = new Promise((resolve, reject) => {
+      prResolve = resolve;
+    });
+  
+    this.connection.query(`SELECT LAST_INSERT_ID() as user_id`, (error, result) => {
+      if (error) throw error;
+      prResolve(result);
+
+      var rez = prResolve(result);
+    });
+    return rez;
+  }
 }

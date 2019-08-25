@@ -6,8 +6,17 @@ const {
     check,
     validationResult
 } = require('express-validator');
+const passport = require('passport');
+const JWT = require('jsonwebtoken');
 
 //GET REQUESTS 
+
+router.get('/', (req, res, next) => {
+   
+    res.send('Here is the home page');
+});
+
+
 router.get('/user', (req, res, next) => {
     db.getUsers().then(resolve => res.send(JSON.stringify(resolve)));
 });
@@ -83,13 +92,13 @@ router.post('/register', [
     .custom((value) => {
         return db.getEmails(value).then(resolve => {
             //resolve.length baca broj istih emailova 
-           // console.log(resolve.length);
-            if (resolve.length > 0){
-             throw new Error('Email address already in use');
-              
-            } 
+            // console.log(resolve.length);
+            if (resolve.length > 0) {
+                throw new Error('Email address already in use');
+
+            }
         });
-        
+
     }),
 
     check('password')
@@ -102,7 +111,7 @@ router.post('/register', [
     .custom((value, {
         req
     }) => value === req.body.password).withMessage("Passwords don't match"),
-    
+
     //Jel dovoljno samo provjeriti unos u body-u ,ako je false baci gresku,a da frontendas na taj true napravi strihir i polje itd
     check('termsOfService')
     .not().isEmpty().withMessage('Field is empty')
@@ -116,20 +125,46 @@ router.post('/register', [
         })
     }
     var data = req.body;
-    db.addUser(data).then(resolve => res.send(JSON.stringify(resolve)));
+    /* db.addUser(data).then(resolve =>{
+         //baca tocan ID
+         //console.log((JSON.stringify(resolve.insertId)));
+         var user_id = resolve.insertId;
+
+         console.log('User_id u post req-u ' +user_id);
+         //ovo srediti
+         req.login(user_id,function(err){
+             res.redirect('/');
+         })
+    
+     }); */
+    var user_id;
+    var token = JWT.sign({
+        sub: user_id,
+        iat: new Date().getTime(),
+        exp: new Date().setDate(new Date().getDate() + 1)
+    }, 'thisissomeauthenticationstring');
+
+    db.addUser(data).then(resolve => {
+        user_id = resolve.insertId;
+        res.status(200).json({
+            token
+        });
+
+    })
+
 });
+
 
 //Add new comment and validate
 router.post('/topic/:id/comment', [
     check('comment_content')
     .not().isEmpty().withMessage('Field is empty')
-    //user_id koji salje zahtjeva,naci nacin za to,vjerojatno preko tokena
-    
-],(req, res, next) => {
+    //user_id koji salje zahtjev,naci nacin za to,vjerojatno preko tokena
+
+], (req, res, next) => {
     let param = req.params;
-   // console.log(param);
     let data = req.body;
-    db.addComment(data,param).then(resolve => res.send(JSON.stringify(resolve)));
+    db.addComment(data, param).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
 
@@ -170,6 +205,15 @@ router.delete('/comment/:id', (req, res, next) => {
     db.removeComment(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
+
+passport.serializeUser((user_id, done) => {
+    done(null, user_id);
+});
+
+passport.deserializeUser((user_id, done) => {
+    done(null, user_id);
+
+});
 
 
 module.exports = router;

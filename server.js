@@ -1,24 +1,40 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const router = require('./routes/route');
-var port = process.env.PORT || 3300;
+const logger = require('morgan');
+const port = process.env.PORT || 3300;
+
+
+ 
+//Authentication packages
+
+
+const passport = require('passport');
 
 
 
 app = express();
 
-//Middleware
+//Middlewares
+app.use(logger('dev'));
 app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(bodyParser.json());
+/* Express-session sam uzalud ubacivao,jer necemo raditi autentikaciju preko cookiea,nego preko jwt
+app.use(session({
+    secret: 'somesecretthings',
+    resave: false,
+    saveUninitialized: false,
+     //cookie: { secure: true }
+}));
+*/
+app.use(passport.initialize());
+
+//Routes
 app.use(router);
 
-
 //Entry point
-router.get('/', (req, res, next) => {
-    res.send('Here is the home page');
-});
 
 
 //setting up the server
