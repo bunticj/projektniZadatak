@@ -7,17 +7,33 @@ const {
     validationResult
 } = require('express-validator');
 const passport = require('passport');
+require('../passport')(passport);
 const JWT = require('jsonwebtoken');
+const { JWT_SECRET } = require('../configuration/index');
+
+
+
+
+function signToken(user_id) {
+
+    return JWT.sign({
+        sub: user_id,
+        iat: new Date().getTime(),
+        exp: new Date().setDate(new Date().getDate() + 1)
+    }, JWT_SECRET);
+}
 
 //GET REQUESTS 
 
 router.get('/', (req, res, next) => {
-   
+
     res.send('Here is the home page');
 });
 
 
-router.get('/user', (req, res, next) => {
+router.get('/user', passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
     db.getUsers().then(resolve => res.send(JSON.stringify(resolve)));
 });
 
@@ -84,18 +100,14 @@ router.post('/register', [
     .not().isEmpty().withMessage('Field is empty')
     .isAlpha().withMessage('Must be alphabetical chars'),
 
-
-
     check('email')
     .not().isEmpty().withMessage('Field is empty')
     .isEmail().withMessage('Email is not valid')
     .custom((value) => {
         return db.getEmails(value).then(resolve => {
             //resolve.length baca broj istih emailova 
-            // console.log(resolve.length);
             if (resolve.length > 0) {
                 throw new Error('Email address already in use');
-
             }
         });
 
@@ -108,9 +120,7 @@ router.post('/register', [
     }).withMessage('Password is required to have minimum 8 characters'),
 
     check('confirmPassword')
-    .custom((value, {
-        req
-    }) => value === req.body.password).withMessage("Passwords don't match"),
+    .custom((value, { req }) => value === req.body.password).withMessage("Passwords don't match"),
 
     //Jel dovoljno samo provjeriti unos u body-u ,ako je false baci gresku,a da frontendas na taj true napravi strihir i polje itd
     check('termsOfService')
@@ -125,33 +135,15 @@ router.post('/register', [
         })
     }
     var data = req.body;
-    /* db.addUser(data).then(resolve =>{
-         //baca tocan ID
-         //console.log((JSON.stringify(resolve.insertId)));
-         var user_id = resolve.insertId;
 
-         console.log('User_id u post req-u ' +user_id);
-         //ovo srediti
-         req.login(user_id,function(err){
-             res.redirect('/');
-         })
-    
-     }); */
-    var user_id;
-    var token = JWT.sign({
-        sub: user_id,
-        iat: new Date().getTime(),
-        exp: new Date().setDate(new Date().getDate() + 1)
-    }, 'thisissomeauthenticationstring');
 
     db.addUser(data).then(resolve => {
         user_id = resolve.insertId;
+        const token = signToken(user_id);
         res.status(200).json({
             token
         });
-
     })
-
 });
 
 
