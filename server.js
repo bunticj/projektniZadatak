@@ -7,11 +7,7 @@ const port = process.env.PORT || 3300;
 
 
 //Authentication packages
-
-
 const passport = require('passport');
-
-
 
 app = express();
 
@@ -21,7 +17,6 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(bodyParser.json());
-
 app.use(passport.initialize());
 
 //Routes

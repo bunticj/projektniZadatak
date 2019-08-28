@@ -6,18 +6,32 @@ const {
     check,
     validationResult
 } = require('express-validator');
+//Authorization
 const passport = require('passport');
 require('../passport')(passport);
 const JWT = require('jsonwebtoken');
-const { JWT_SECRET } = require('../configuration/index');
+const {
+    JWT_SECRET
+} = require('../configuration/scrt');
 
-
-
-
-function signToken(user_id) {
+/*
+function checkToken(req,res,next) {
+    try {
+        const decoded = jwt.verify(req.header('authorization') , JWT_SECRET);
+        req.userData = decoded;
+        next();
+    }
+    catch(error){
+        return res.status(401).json({
+            message : 'Authentication failed'
+        });
+    }
+}
+*/
+function signToken(id) {
 
     return JWT.sign({
-        sub: user_id,
+        sub: id,
         iat: new Date().getTime(),
         exp: new Date().setDate(new Date().getDate() + 1)
     }, JWT_SECRET);
@@ -25,9 +39,14 @@ function signToken(user_id) {
 
 //GET REQUESTS 
 
-router.get('/', (req, res, next) => {
+//register
+router.get('/register', (req, res, next) => {
+    res.send('Register');
+});
 
-    res.send('Here is the home page');
+//login
+router.get('/login', (req, res, next) => {
+    res.send('Log in to proceed');
 });
 
 
@@ -37,58 +56,42 @@ router.get('/user', passport.authenticate('jwt', {
     db.getUsers().then(resolve => res.send(JSON.stringify(resolve)));
 });
 
-router.get('/topic', (req, res, next) => {
+router.get('/topic',passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
     db.getTopicList().then(resolve => res.send(JSON.stringify(resolve)));
 });
 
 //GET by ID
-router.get('/topic/:id', (req, res, next) => {
+router.get('/topic/:id',passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
     let id = req.params.id;
+    
     db.getSingleTopic(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
-router.get('/user/:id', (req, res, next) => {
+router.get('/user/:id', passport.authenticate('jwt', {
+    session: false
+}),(req, res, next) => {
     let id = req.params.id;
     db.getSingleUser(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
 //GET comments on topic with id : 
-router.get('/topic/:id/comment', (req, res, next) => {
+router.get('/topic/:id/comment',passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
     let id = req.params.id;
     db.getCommentsOnTopic(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
-//login
-router.get('/login', (req, res, next) => {
-    res.send('Here is the login page');
-});
 
-//register
-router.get('/register', (req, res, next) => {
-    res.send('Register');
-});
+
 
 
 
 //POST REQUESTS
-
-//Add new topic and validate
-router.post('/topic', [
-    check('title')
-    .not().isEmpty().withMessage('Title field is empty'),
-    check('content')
-    .not().isEmpty().withMessage('Content field is empty')
-    //user_id tj, onaj tko je kreirao temu  moram  skontati kako, pa cu onda postaviti validaciju i za to 
-], (req, res, next) => {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-        return res.status(400).json({
-            errors: errors.array()
-        })
-    }
-    let data = req.body;
-    db.addTopic(data).then(resolve => res.send(JSON.stringify(resolve)));
-});
 
 //Add new user and validate
 router.post('/register', [
@@ -104,8 +107,8 @@ router.post('/register', [
     .not().isEmpty().withMessage('Field is empty')
     .isEmail().withMessage('Email is not valid')
     .custom((value) => {
-        return db.getEmails(value).then(resolve => {
-            //resolve.length baca broj istih emailova 
+        return db.getUserByEmail(value).then(resolve => {
+            //resolve.length ->  number of users with this email
             if (resolve.length > 0) {
                 throw new Error('Email address already in use');
             }
@@ -120,9 +123,11 @@ router.post('/register', [
     }).withMessage('Password is required to have minimum 8 characters'),
 
     check('confirmPassword')
-    .custom((value, { req }) => value === req.body.password).withMessage("Passwords don't match"),
-
-    //Jel dovoljno samo provjeriti unos u body-u ,ako je false baci gresku,a da frontendas na taj true napravi strihir i polje itd
+    .custom((value, {
+        req
+    }) => value === req.body.password).withMessage("Passwords don't match"),
+    
+    // termsOfService should be true to reg
     check('termsOfService')
     .not().isEmpty().withMessage('Field is empty')
     .custom((value) => value === true).withMessage('Accept terms of service to registrate successfully')
@@ -130,6 +135,8 @@ router.post('/register', [
 ], (req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+        console.log(errors);
+
         return res.status(400).json({
             errors: errors.array()
         })
@@ -140,23 +147,77 @@ router.post('/register', [
     db.addUser(data).then(resolve => {
         user_id = resolve.insertId;
         const token = signToken(user_id);
-        res.status(200).json({
-            token
+        res.status(201).json({
+            token,
+            message : 'User created'
         });
     })
 });
 
 
+//login post 
+router.post('/login', [
+    check('email')
+    .not().isEmpty().withMessage('Field is empty')
+    .isEmail().withMessage('Email is not valid'),
+    check('password')
+    .not().isEmpty().withMessage('Field is empty')
+    .isLength({
+        min: 8
+    }).withMessage('Password is required to have minimum 8 characters')
+], passport.authenticate('local', {
+    
+   // successRedirect: '/topic',
+    failureRedirect: '/login',
+    session: false
+}), (req, res, next) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        console.log(errors);
+        return res.status(400).json({
+            errors: errors.array()
+        })
+    }
+    db.getUserByEmail(req.body.email).then(resolve =>{
+        //Kada stavim citav user objekt kao parametar,mogu dekodirati sve. Kada stavim user.id ,nestane ID kada dekodiram
+        const token = signToken(resolve[0].id);
+    res.status(200).json({
+        token,
+        message : "Authentication successful"
+    });
+    });
+    
+});
+//Add new topic and validate
+router.post('/topic',passport.authenticate(('jwt'),{ session : false }), [
+    check('title')
+    .not().isEmpty().withMessage('Title field is empty'),
+    check('content')
+    .not().isEmpty().withMessage('Content field is empty')
+    //user_id tj, onaj tko je kreirao temu  moram  skontati kako, pa cu onda postaviti validaciju i za to 
+], (req, res, next) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            errors: errors.array()
+        })
+    }
+    let data = req.body;
+    db.addTopic(data,user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
+});
+
+
+
 //Add new comment and validate
-router.post('/topic/:id/comment', [
+router.post('/topic/:id/comment', passport.authenticate(('jwt'),{ session : false }), [
     check('comment_content')
     .not().isEmpty().withMessage('Field is empty')
     //user_id koji salje zahtjev,naci nacin za to,vjerojatno preko tokena
 
 ], (req, res, next) => {
-    let param = req.params;
+    let id= req.params.id;
     let data = req.body;
-    db.addComment(data, param).then(resolve => res.send(JSON.stringify(resolve)));
+    db.addComment(data, id,user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
 });
 
 
@@ -198,14 +259,6 @@ router.delete('/comment/:id', (req, res, next) => {
 });
 
 
-passport.serializeUser((user_id, done) => {
-    done(null, user_id);
-});
-
-passport.deserializeUser((user_id, done) => {
-    done(null, user_id);
-
-});
 
 
 module.exports = router;

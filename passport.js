@@ -1,20 +1,32 @@
-const passport = require('passport');
 const JWTStrategy = require('passport-jwt').Strategy;
-const { ExtractJwt}  = require('passport-jwt');
-const {JWT_SECRET} = require('./configuration/index');
+const LocalStrategy = require('passport-local').Strategy;
+const {
+    ExtractJwt
+} = require('passport-jwt');
+const {
+    JWT_SECRET
+} = require('./configuration/scrt');
 const dbClass = require('./core/database');
 const db = new dbClass();
+const bcrypt = require('bcryptjs');
 
-module.exports = function(passport){
+module.exports = function (passport) {
+
+    //JSON WEB TOKEN STRATEGY
     passport.use(new JWTStrategy({
         jwtFromRequest: ExtractJwt.fromHeader('authorization'),
         secretOrKey: JWT_SECRET
     }, async (payload, done) => {
-    
+
         try {
-            const user = db.getSingleUser(payload.sub);
-            console.log(user);
+            //find user by id
+            await db.getSingleUser(payload.sub).then(resolve =>{
+                user = resolve[0]; 
+            });
+            //console.log(payload.sub);
+            //console.log('user u jwt strategy je' + user.id);
             if (!user) {
+                console.log('user u jwt strategiji ne postoji');
                 return done(null, false);
             }
             done(null, user);
@@ -22,4 +34,42 @@ module.exports = function(passport){
             done(error, false);
         }
     }));
+
+    //LOCAL STRATEGY
+    passport.use(new LocalStrategy({
+        usernameField: 'email',
+        passwordField: 'password'
+    },  (email, password, done) => {
+       
+         db.getUserByEmail(email)
+            .then(resolve => {
+                if (resolve.length < 1) {
+                    return done(null, false);
+
+                } else {
+                    const hash = resolve[0].password.toString();
+                    const user = JSON.stringify(resolve[0]);
+                     bcrypt.compare(password, hash,function(err,res){
+                         if (res === true){
+                            console.log('bcrypt pass compare is true');
+                            console.log('user u local strategy je' + user);
+
+                            return done(null, { user});
+                         }else{
+                            console.log('bcrypt pass  compare je false');
+                            return done(null,false);
+                         }
+                     });
+                       
+                    
+                   
+                    
+
+
+                }
+
+            })
+
+    }));
+
 }

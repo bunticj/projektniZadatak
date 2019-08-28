@@ -13,7 +13,7 @@ module.exports = class DB {
 
   //CRUD query operations:
 
-  //CREATE  user query operation and hashing password in DB
+  //CREATE  user query operation and hash password in DB
   addUser(data) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -24,8 +24,8 @@ module.exports = class DB {
 
       let sqlQuery = `INSERT INTO user (first_name, last_name, email, password) VALUES (?,?,?,?) `;
       let params = [data.first_name, data.last_name, data.email, hash, data.confirmPassword, data.termsOfService];
-      this.connection.query(sqlQuery, params, (error, result) => {
-        if (error) throw error;
+      this.connection.query(sqlQuery, params, (err, result) => {
+        if (err) throw error;
         prResolve(result);
       });
 
@@ -35,15 +35,16 @@ module.exports = class DB {
   }
 
 
+  
 
 
-  addTopic(data) {
+  addTopic(data,uid) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
     let sqlQuery = `INSERT INTO topic (title,content,user_id) VALUES (?,?,?) `;
-    let params = [data.title, data.content, data.user_id];
+    let params = [data.title, data.content, uid];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -52,13 +53,13 @@ module.exports = class DB {
     return pr;
   }
 
-  addComment(data, param) {
+  addComment(data, param,user_id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
     let sqlQuery = `INSERT INTO comment (topic_id,user_id,comment_content) VALUES (?,?,?) `;
-    let params = [param.id, data.user_id, data.comment_content];
+    let params = [param, user_id, data.comment_content,user_id];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -146,9 +147,9 @@ module.exports = class DB {
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `UPDATE user SET first_name = COALESCE(?,first_name), last_name = COALESCE(?,last_name), email = COALESCE(?,email),
+    let sqlQuery = `UPDATE user SET first_name = COALESCE(?,first_name), last_name = COALESCE(?,last_name),
     password = COALESCE(?,password) WHERE id = ?`;
-    let params = [data.first_name, data.last_name, data.email, data.password, id];
+    let params = [data.first_name, data.last_name, data.password, id];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -178,9 +179,9 @@ module.exports = class DB {
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `UPDATE comment SET topic_id = COALESCE(?,topic_id), user_id = COALESCE(?,user_id), comment_content = COALESCE(?,comment_content)
+    let sqlQuery = `UPDATE comment SET comment_content = COALESCE(?,comment_content)
      WHERE comment_id = ?`;
-    let params = [data.topic_id, data.user_id, data.comment_content, id];
+    let params = [data.comment_content, id];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
       u
@@ -234,13 +235,16 @@ module.exports = class DB {
 
   }
 
-  //for validation purposes
-  getEmails(data) {
+
+  
+
+   //For validation purposes
+  getUserByEmail(data) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT email  FROM user WHERE email =?`;
+    let sqlQuery = `SELECT *  FROM user WHERE email =?`;
     this.connection.query(sqlQuery, data, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -249,6 +253,6 @@ module.exports = class DB {
   }
 
 
-
+  
 
 }
