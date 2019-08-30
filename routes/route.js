@@ -14,20 +14,7 @@ const {
     JWT_SECRET
 } = require('../configuration/scrt');
 
-/*
-function checkToken(req,res,next) {
-    try {
-        const decoded = jwt.verify(req.header('authorization') , JWT_SECRET);
-        req.userData = decoded;
-        next();
-    }
-    catch(error){
-        return res.status(401).json({
-            message : 'Authentication failed'
-        });
-    }
-}
-*/
+
 function signToken(id) {
 
     return JWT.sign({
@@ -49,6 +36,10 @@ router.get('/login', (req, res, next) => {
     res.send('Log in to proceed');
 });
 
+router.get('/logout', function(req, res){
+    req.logout();
+    res.redirect('/');
+  });
 
 router.get('/user', passport.authenticate('jwt', {
     session: false
@@ -56,30 +47,30 @@ router.get('/user', passport.authenticate('jwt', {
     db.getUsers().then(resolve => res.send(JSON.stringify(resolve)));
 });
 
-router.get('/topic',passport.authenticate('jwt', {
+router.get('/topic', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     db.getTopicList().then(resolve => res.send(JSON.stringify(resolve)));
 });
 
 //GET by ID
-router.get('/topic/:id',passport.authenticate('jwt', {
+router.get('/topic/:id', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let id = req.params.id;
-    
+
     db.getSingleTopic(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
 router.get('/user/:id', passport.authenticate('jwt', {
     session: false
-}),(req, res, next) => {
+}), (req, res, next) => {
     let id = req.params.id;
     db.getSingleUser(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
 //GET comments on topic with id : 
-router.get('/topic/:id/comment',passport.authenticate('jwt', {
+router.get('/topic/:id/comment', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let id = req.params.id;
@@ -126,8 +117,8 @@ router.post('/register', [
     .custom((value, {
         req
     }) => value === req.body.password).withMessage("Passwords don't match"),
-    
-    // termsOfService should be true to reg
+
+    // termsOfService should be equal to true 
     check('termsOfService')
     .not().isEmpty().withMessage('Field is empty')
     .custom((value) => value === true).withMessage('Accept terms of service to registrate successfully')
@@ -141,15 +132,15 @@ router.post('/register', [
             errors: errors.array()
         })
     }
-    var data = req.body;
 
 
-    db.addUser(data).then(resolve => {
+//call addUser ,create token
+    db.addUser(req.body).then(resolve => {
         user_id = resolve.insertId;
         const token = signToken(user_id);
         res.status(201).json({
             token,
-            message : 'User created'
+            message: 'User created'
         });
     })
 });
@@ -166,8 +157,9 @@ router.post('/login', [
         min: 8
     }).withMessage('Password is required to have minimum 8 characters')
 ], passport.authenticate('local', {
-    
-   // successRedirect: '/topic',
+
+    // successRedirect: '/topic',
+    successMessage: 'Success',
     failureRedirect: '/login',
     session: false
 }), (req, res, next) => {
@@ -178,23 +170,24 @@ router.post('/login', [
             errors: errors.array()
         })
     }
-    db.getUserByEmail(req.body.email).then(resolve =>{
+    db.getUserByEmail(req.body.email).then(resolve => {
         //Kada stavim citav user objekt kao parametar,mogu dekodirati sve. Kada stavim user.id ,nestane ID kada dekodiram
         const token = signToken(resolve[0].id);
-    res.status(200).json({
-        token,
-        message : "Authentication successful"
+        res.status(200).json({
+            token,
+            message: "Authentication successful"
+        });
     });
-    });
-    
+
 });
 //Add new topic and validate
-router.post('/topic',passport.authenticate(('jwt'),{ session : false }), [
+router.post('/topic', passport.authenticate(('jwt'), {
+    session: false
+}), [
     check('title')
     .not().isEmpty().withMessage('Title field is empty'),
     check('content')
     .not().isEmpty().withMessage('Content field is empty')
-    //user_id tj, onaj tko je kreirao temu  moram  skontati kako, pa cu onda postaviti validaciju i za to 
 ], (req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -202,58 +195,107 @@ router.post('/topic',passport.authenticate(('jwt'),{ session : false }), [
             errors: errors.array()
         })
     }
-    let data = req.body;
-    db.addTopic(data,user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
+    db.addTopic(req.body, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
 });
 
 
 
 //Add new comment and validate
-router.post('/topic/:id/comment', passport.authenticate(('jwt'),{ session : false }), [
+router.post('/topic/:id/comment', passport.authenticate(('jwt'), {
+    session: false
+}), [
     check('comment_content')
     .not().isEmpty().withMessage('Field is empty')
-    //user_id koji salje zahtjev,naci nacin za to,vjerojatno preko tokena
 
 ], (req, res, next) => {
-    let id= req.params.id;
-    let data = req.body;
-    db.addComment(data, id,user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
+    let id = req.params.id;
+
+    db.addComment(req.body, id, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
 });
 
 
 
 //PATCH REQUESTS
-router.patch('/user/:id', (req, res, next) => {
-    let id = req.params.id;
-    let data = req.body;
-    db.updateUser(data, id).then(resolve => res.send(JSON.stringify(resolve)));
+//Insert validation!!!
+router.patch('/user/:id', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+    let id = parseInt(req.params.id);
+    let parsedTokenId = parseInt(user.id);
+
+    if (id === parsedTokenId) {
+        db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+    } else {
+        throw Error('Unauthorized');
+    }
+
 });
 
-router.patch('/topic/:id', (req, res, next) => {
-    let id = req.params.id;
-    let data = req.body;
-    db.updateTopic(data, id).then(resolve => res.send(JSON.stringify(resolve)));
+//Doesn't get errors,but doesn't update anything!!! 
+router.patch('/topic/:id', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+    var parsedTokenId = parseInt(user.id);
+    var parsedTopicId = parseInt(req.params.id);
+    //console.log(parsedTokenId);
+
+    db.getSingleTopic(req.params.id).then(resolve => {
+        var topicObj = resolve[0];
+        console.log(parsedTokenId);
+        console.log(topicObj.user_id);
+        if (topicObj.user_id === parsedTokenId) {
+            //Log prodje,ali nista ne promijeni kada zovnem funkciju updateTopic
+            console.log('Condition passed');
+                //mozda je jer su oba promisa resolve pa se bunda,SUTRA PROBAT da nazovem neki drukcije 
+             db.updateTopic(parsedTopicId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+        } else {
+            console.log('bad');
+            throw Error('Unauthorized');
+            
+        }
+    })
+  
 });
 
-router.patch('/comment/:id', (req, res, next) => {
-    let id = req.params.id;
-    let data = req.body;
-    db.updateComment(data, id).then(resolve => res.send(JSON.stringify(resolve)));
+//Popraviti logiku
+router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+    console.log(req.params);
+    let topicId = req.params.topicId;
+    let commentId = parseInt(req.params.commentId);
+    let parsedTokenId = parseInt(user.id);
+
+
+        db.updateComment(req.body, commentId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
 
 
 //DELETE REQUESTS
-router.delete('/user/:id', (req, res, next) => {
-    let id = req.params.id;
-    db.removeUser(id).then(resolve => res.send(JSON.stringify(resolve)));
+//Delete user
+router.delete('/user/:id', passport.authenticate(('jwt'), {
+    session: false
+}),(req, res, next) => {
+    let parsedId = parseInt(req.params.id);
+    let parsedToken = parseInt(user.id)
+
+    if (parsedId === parsedToken){
+        console.log(parsedId, parsedToken);
+        db.removeUser(parsedId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+    }
+    else {
+        console.log(parsedId, parsedToken);
+        throw Error('Unauthorized');
+    }
 });
 
+//add authorization and  logic
 router.delete('/topic/:id', (req, res, next) => {
     let id = req.params.id;
     db.removeTopic(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
 
-router.delete('/comment/:id', (req, res, next) => {
+router.delete('/topic/:topicId/comment/:commentId', (req, res, next) => {
     let id = req.params.id;
     db.removeComment(id).then(resolve => res.send(JSON.stringify(resolve)));
 });
