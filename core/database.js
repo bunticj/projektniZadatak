@@ -140,6 +140,20 @@ module.exports = class DB {
 
   }
 
+  getSingleComment(id) {
+    let prResolve;
+    let pr = new Promise((resolve, reject) => {
+      prResolve = resolve;
+    });
+    let sqlQuery = `SELECT * FROM comment WHERE comment.comment_id = ? `;
+    this.connection.query(sqlQuery, id, (error, result) => {
+      if (error) throw error;
+      prResolve(result);
+    });
+    return pr;
+
+  }
+
   //UPDATE operations
   //Update user 
   updateUser(data, id) {

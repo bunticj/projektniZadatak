@@ -153,13 +153,11 @@ router.post('/login', [
     .isEmail().withMessage('Email is not valid'),
     check('password')
     .not().isEmpty().withMessage('Field is empty')
-    .isLength({
-        min: 8
-    }).withMessage('Password is required to have minimum 8 characters')
-], passport.authenticate('local', {
 
-    // successRedirect: '/topic',
-    successMessage: 'Success',
+], passport.authenticate('local', {
+    successRedirect: '/topic',
+    successMessage : 'Success',
+    failureMessage : 'Wrong credentials',
     failureRedirect: '/login',
     session: false
 }), (req, res, next) => {
@@ -190,16 +188,18 @@ router.post('/topic', passport.authenticate(('jwt'), {
 ], (req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+        console.log(errors);
         return res.status(400).json({
             errors: errors.array()
         })
     }
+    console.log()
     db.addTopic(req.body, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
 });
 
 
 
-//Add new comment and validate
+//Add new comment and validate 
 router.post('/topic/:id/comment', passport.authenticate(('jwt'), {
     session: false
 }), [
@@ -209,21 +209,20 @@ router.post('/topic/:id/comment', passport.authenticate(('jwt'), {
 ], (req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+        console.log(errors);
         return res.status(400).json({
             errors: errors.array()
+
         });
     }
-    let id = req.params.id;
-
-    db.addComment(req.body, id, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
+    db.addComment(req.body, req.params.id, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
 });
 
 
 
 //PATCH REQUESTS
-router.patch('/user/:id',
-
-    passport.authenticate(('jwt'), {
+//Update user,validate 
+router.patch('/user/:id', passport.authenticate(('jwt'), {
         session: false
     }), [
         check('first_name')
@@ -243,44 +242,43 @@ router.patch('/user/:id',
 
     });
 
-//Doesn't get errors,but doesn't update anything!!! 
 router.patch('/topic/:id', passport.authenticate(('jwt'), {
     session: false
 }), (req, res, next) => {
     var parsedTokenId = parseInt(user.id);
     var parsedTopicId = parseInt(req.params.id);
-    //console.log(parsedTokenId);
 
     db.getSingleTopic(req.params.id).then(resolve => {
         var topicObj = resolve[0];
-        console.log(parsedTokenId);
-        console.log(topicObj.user_id);
         if (topicObj.user_id === parsedTokenId) {
-            //Log prodje,ali nista ne promijeni kada zovnem funkciju updateTopic
-            console.log('Condition passed');
-            //mozda je jer su oba promisa resolve pa se bunda,SUTRA PROBAT da nazovem neki drukcije 
-            db.updateTopic(parsedTopicId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+            console.log('Condition passed,user can update this topic');
+            db.updateTopic(req.body, parsedTopicId).then(result => res.status(200).send(JSON.stringify(result)));
         } else {
-            console.log('bad');
             throw Error('Unauthorized');
-
         }
     })
 
 });
 
-//Popraviti logiku
 router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt'), {
     session: false
 }), (req, res, next) => {
-    console.log(req.params);
-    let topicId = req.params.topicId;
-    let commentId = parseInt(req.params.commentId);
-    let parsedTokenId = parseInt(user.id);
+    var parsedTokenId = parseInt(user.id);
+    var commentId = parseInt(req.params.commentId);
+    db.getSingleComment(commentId).then(resolve => {
+        var commentObj = resolve[0];
+        if (commentObj.user_id === parsedTokenId) {
+            console.log('User can update this comment');
+            db.updateComment(req.body, req.params.commentId)
+                .then(result => res.status(200).send(JSON.stringify(result)));
+        } else {
+            throw Error('Unauthorized');
+        }
+    })
 
-
-    db.updateComment(req.body, commentId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
+
+
 
 
 //DELETE REQUESTS
@@ -288,28 +286,57 @@ router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt')
 router.delete('/user/:id', passport.authenticate(('jwt'), {
     session: false
 }), (req, res, next) => {
-    let parsedId = parseInt(req.params.id);
-    let parsedToken = parseInt(user.id)
+    var parsedId = parseInt(req.params.id);
+    var parsedToken = parseInt(user.id)
 
     if (parsedId === parsedToken) {
         console.log(parsedId, parsedToken);
-        db.removeUser(parsedId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+        db.removeUser(parsedId).
+        then(resolve => res.status(200).send(JSON.stringify(resolve)));
     } else {
         console.log(parsedId, parsedToken);
         throw Error('Unauthorized');
     }
 });
 
-//add authorization and  logic
-router.delete('/topic/:id', (req, res, next) => {
-    let id = req.params.id;
-    db.removeTopic(id).then(resolve => res.send(JSON.stringify(resolve)));
+router.delete('/topic/:id', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+    var parsedTokenId = parseInt(user.id);
+
+    db.getSingleTopic(req.params.id).then(resolve => {
+        var topicObj = resolve[0];
+
+        if (topicObj.user_id === parsedTokenId) {
+            console.log('Condition passed,user can delete this topic');
+            db.removeTopic(req.params.id).then(result => res.status(200).send(JSON.stringify(result)));
+        } else {
+            throw Error('Unauthorized');
+        }
+    })
+
 });
 
-router.delete('/topic/:topicId/comment/:commentId', (req, res, next) => {
-    let id = req.params.id;
-    db.removeComment(id).then(resolve => res.send(JSON.stringify(resolve)));
+
+
+router.delete('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+
+    var parsedTokenId = parseInt(user.id);
+    var commentId = parseInt(req.params.commentId);
+    db.getSingleComment(commentId).then(resolve => {
+        var commentObj = resolve[0];
+        if (commentObj.user_id === parsedTokenId) {
+            console.log('User can delete this comment');
+            db.removeComment(commentId).then(result => res.status(200).send(JSON.stringify(result)));
+        } else {
+            throw Error('Unauthorized');
+        }
+    })
+
 });
+
 
 
 

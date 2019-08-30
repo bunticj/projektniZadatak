@@ -10,6 +10,7 @@ const dbClass = require('./core/database');
 const db = new dbClass();
 const bcrypt = require('bcryptjs');
 
+
 module.exports = function (passport) {
 
     //JSON WEB TOKEN STRATEGY
@@ -23,8 +24,6 @@ module.exports = function (passport) {
             await db.getSingleUser(payload.sub).then(resolve =>{
                 user = resolve[0]; 
             });
-            //console.log(payload.sub);
-            //console.log('user u jwt strategy je' + user.id);
             if (!user) {
                 console.log('user u jwt strategiji ne postoji');
                 return done(null, false);
@@ -52,11 +51,11 @@ module.exports = function (passport) {
                      bcrypt.compare(password, hash,function(err,res){
                          if (res === true){
                             console.log('bcrypt pass compare is true');
-                            console.log('user u local strategy je' + user);
+                            console.log('Logged user is ' + user);
 
                             return done(null, { user});
                          }else{
-                            console.log('bcrypt pass  compare je false');
+                            console.log('Wrong password');
                             return done(null,false);
                          }
                      });
