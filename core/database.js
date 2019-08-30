@@ -32,12 +32,9 @@ module.exports = class DB {
     });
 
     return pr;
-  }
+  }  
 
-
-  
-
-
+  //Create topic
   addTopic(data,uid) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -53,13 +50,14 @@ module.exports = class DB {
     return pr;
   }
 
+    //Create comment on specific topic
   addComment(data, param,user_id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
     let sqlQuery = `INSERT INTO comment (topic_id,user_id,comment_content) VALUES (?,?,?) `;
-    let params = [param, user_id, data.comment_content,user_id];
+    let params = [param, user_id, data.comment_content];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -69,19 +67,20 @@ module.exports = class DB {
   }
 
   // READ  operations
+  //Get list of topic titles
   getTopicList() {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT title FROM topic `;
+    let sqlQuery = `SELECT title FROM topic LIMIT 20`;
     this.connection.query(sqlQuery, (error, result) => {
       if (error) throw error;
       prResolve(result);
     });
     return pr;
   }
-
+  //Get topic by id
   getSingleTopic(id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -98,13 +97,13 @@ module.exports = class DB {
     return pr;
 
   }
-
+  //Get all users
   getUsers() {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT * FROM user`;
+    let sqlQuery = `SELECT * FROM user LIMIT 20`;
     this.connection.query(sqlQuery, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -112,7 +111,7 @@ module.exports = class DB {
     return pr;
 
   }
-
+  //Get user by id
   getSingleUser(id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -126,13 +125,13 @@ module.exports = class DB {
     return pr;
 
   }
-
+  //Get comments on specific topic
   getCommentsOnTopic(id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT * FROM comment INNER JOIN topic ON topic.topic_id = comment.topic_id WHERE comment.topic_id = ?`;
+    let sqlQuery = `SELECT * FROM comment INNER JOIN topic ON topic.topic_id = comment.topic_id WHERE comment.topic_id = ? LIMIT 20`;
     this.connection.query(sqlQuery, id, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -142,15 +141,17 @@ module.exports = class DB {
   }
 
   //UPDATE operations
+  //Update user 
   updateUser(data, id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `UPDATE user SET first_name = COALESCE(?,first_name), last_name = COALESCE(?,last_name),
-    password = COALESCE(?,password) WHERE id = ?`;
-    let params = [data.first_name, data.last_name, data.password, id];
-    this.connection.query(sqlQuery, params, (error, result) => {
+    let sqlQuery = `UPDATE user SET first_name = COALESCE(?,first_name), last_name = COALESCE(?,last_name)
+    WHERE id = ?`
+    
+    let params = [data.first_name,data.last_name, id];
+    this.connection.query(sqlQuery,params, (error, result) => {
       if (error) throw error;
       prResolve(result);
     });
@@ -158,22 +159,23 @@ module.exports = class DB {
     return pr;
   }
 
+  //Update topic
   updateTopic(data, id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `UPDATE topic SET title = COALESCE(?,title), content = COALESCE(?,content), user_id = COALESCE(?,user_id)
-     WHERE topic_id = ?`;
-    let params = [data.title, data.content, data.user_id, id];
+    let sqlQuery = `UPDATE topic SET title = COALESCE(?,title), content = COALESCE(?,content)
+  WHERE topic_id = ?`;
+    let params = [data.title, data.content, id];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
       prResolve(result);
     });
-
     return pr;
   }
 
+  //Update comment
   updateComment(data, id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -184,15 +186,14 @@ module.exports = class DB {
     let params = [data.comment_content, id];
     this.connection.query(sqlQuery, params, (error, result) => {
       if (error) throw error;
-      u
       prResolve(result);
     });
-
     return pr;
   }
 
   //DELETE operations
 
+  //Delete user
   removeUser(id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
@@ -204,41 +205,39 @@ module.exports = class DB {
       prResolve(result);
     });
     return pr;
-
   }
 
+  //Delete topic
   removeTopic(id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `DELETE  FROM topic WHERE id =?`;
+    let sqlQuery = `DELETE  FROM topic WHERE topic_id =?`;
     this.connection.query(sqlQuery, id, (error, result) => {
       if (error) throw error;
       prResolve(result);
     });
     return pr;
-
   }
-
+  
+  //Delete comment
   removeComment(id) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `DELETE  FROM comment WHERE id =?`;
+    let sqlQuery = `DELETE  FROM comment WHERE comment_id =?`;
     this.connection.query(sqlQuery, id, (error, result) => {
       if (error) throw error;
       prResolve(result);
     });
     return pr;
-
   }
 
+ 
 
-  
-
-   //For validation purposes
+  //For validation purposes
   getUserByEmail(data) {
     let prResolve;
     let pr = new Promise((resolve, reject) => {
