@@ -3,10 +3,6 @@ const bodyParser = require('body-parser');
 const router = require('./routes/route');
 const logger = require('morgan');
 const port = process.env.PORT || 3300;
-
-
-
-//Authentication packages
 const passport = require('passport');
 
 app = express();
