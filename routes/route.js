@@ -171,7 +171,6 @@ router.post('/login', [
         })
     }
     db.getUserByEmail(req.body.email).then(resolve => {
-        //Kada stavim citav user objekt kao parametar,mogu dekodirati sve. Kada stavim user.id ,nestane ID kada dekodiram
         const token = signToken(resolve[0].id);
         res.status(200).json({
             token,
