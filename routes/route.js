@@ -36,10 +36,10 @@ router.get('/login', (req, res, next) => {
     res.send('Log in to proceed');
 });
 
-router.get('/logout', function(req, res){
+router.get('/logout', function (req, res) {
     req.logout();
     res.redirect('/');
-  });
+});
 
 router.get('/user', passport.authenticate('jwt', {
     session: false
@@ -134,7 +134,7 @@ router.post('/register', [
     }
 
 
-//call addUser ,create token
+    //call addUser ,create token
     db.addUser(req.body).then(resolve => {
         user_id = resolve.insertId;
         const token = signToken(user_id);
@@ -207,6 +207,12 @@ router.post('/topic/:id/comment', passport.authenticate(('jwt'), {
     .not().isEmpty().withMessage('Field is empty')
 
 ], (req, res, next) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            errors: errors.array()
+        });
+    }
     let id = req.params.id;
 
     db.addComment(req.body, id, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
@@ -215,20 +221,27 @@ router.post('/topic/:id/comment', passport.authenticate(('jwt'), {
 
 
 //PATCH REQUESTS
-//Insert validation!!!
-router.patch('/user/:id', passport.authenticate(('jwt'), {
-    session: false
-}), (req, res, next) => {
-    let id = parseInt(req.params.id);
-    let parsedTokenId = parseInt(user.id);
+router.patch('/user/:id',
 
-    if (id === parsedTokenId) {
-        db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
-    } else {
-        throw Error('Unauthorized');
-    }
+    passport.authenticate(('jwt'), {
+        session: false
+    }), [
+        check('first_name')
+        .isAlpha().withMessage('Must be alphabetical chars'),
 
-});
+        check('last_name')
+        .isAlpha().withMessage('Must be alphabetical chars'),
+    ], (req, res, next) => {
+        let id = parseInt(req.params.id);
+        let parsedTokenId = parseInt(user.id);
+
+        if (id === parsedTokenId) {
+            db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+        } else {
+            throw Error('Unauthorized');
+        }
+
+    });
 
 //Doesn't get errors,but doesn't update anything!!! 
 router.patch('/topic/:id', passport.authenticate(('jwt'), {
@@ -245,15 +258,15 @@ router.patch('/topic/:id', passport.authenticate(('jwt'), {
         if (topicObj.user_id === parsedTokenId) {
             //Log prodje,ali nista ne promijeni kada zovnem funkciju updateTopic
             console.log('Condition passed');
-                //mozda je jer su oba promisa resolve pa se bunda,SUTRA PROBAT da nazovem neki drukcije 
-             db.updateTopic(parsedTopicId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+            //mozda je jer su oba promisa resolve pa se bunda,SUTRA PROBAT da nazovem neki drukcije 
+            db.updateTopic(parsedTopicId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
         } else {
             console.log('bad');
             throw Error('Unauthorized');
-            
+
         }
     })
-  
+
 });
 
 //Popraviti logiku
@@ -266,7 +279,7 @@ router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt')
     let parsedTokenId = parseInt(user.id);
 
 
-        db.updateComment(req.body, commentId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+    db.updateComment(req.body, commentId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
 
 
@@ -274,15 +287,14 @@ router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt')
 //Delete user
 router.delete('/user/:id', passport.authenticate(('jwt'), {
     session: false
-}),(req, res, next) => {
+}), (req, res, next) => {
     let parsedId = parseInt(req.params.id);
     let parsedToken = parseInt(user.id)
 
-    if (parsedId === parsedToken){
+    if (parsedId === parsedToken) {
         console.log(parsedId, parsedToken);
         db.removeUser(parsedId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
-    }
-    else {
+    } else {
         console.log(parsedId, parsedToken);
         throw Error('Unauthorized');
     }
