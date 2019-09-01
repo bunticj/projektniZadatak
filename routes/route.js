@@ -13,8 +13,10 @@ const JWT = require('jsonwebtoken');
 const {
     JWT_SECRET
 } = require('../configuration/scrt');
+const nodeMail = require('../configuration/mailService').nodeMail;
 
 
+//ovu funkciju prebaciti negdje
 function signToken(id) {
 
     return JWT.sign({
@@ -28,29 +30,37 @@ function signToken(id) {
 
 //register
 router.get('/register', (req, res, next) => {
-    res.send('Register');
+    res.status(200).send('Register');
 });
 
 //login
 router.get('/login', (req, res, next) => {
-    res.send('Log in to proceed');
+    res.status(200).send('Log in to proceed');
 });
 
+//logout
 router.get('/logout', function (req, res) {
     req.logout();
     res.redirect('/');
 });
 
+
+//forgot pass
+router.get('/passwordreset', (req, res, next) => {
+    res.status(200).send('Do you want to reset your password? ');
+});
+
+
 router.get('/user', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
-    db.getUsers().then(resolve => res.send(JSON.stringify(resolve)));
+    db.getUsers().then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
 
 router.get('/topic', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
-    db.getTopicList().then(resolve => res.send(JSON.stringify(resolve)));
+    db.getTopicList().then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
 
 //GET by ID
@@ -59,14 +69,14 @@ router.get('/topic/:id', passport.authenticate('jwt', {
 }), (req, res, next) => {
     let id = req.params.id;
 
-    db.getSingleTopic(id).then(resolve => res.send(JSON.stringify(resolve)));
+    db.getSingleTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
 
 router.get('/user/:id', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let id = req.params.id;
-    db.getSingleUser(id).then(resolve => res.send(JSON.stringify(resolve)));
+    db.getSingleUser(id).then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
 
 //GET comments on topic with id : 
@@ -74,7 +84,7 @@ router.get('/topic/:id/comment', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let id = req.params.id;
-    db.getCommentsOnTopic(id).then(resolve => res.send(JSON.stringify(resolve)));
+    db.getCommentsOnTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve)));
 });
 
 
@@ -83,6 +93,23 @@ router.get('/topic/:id/comment', passport.authenticate('jwt', {
 
 
 //POST REQUESTS
+
+router.post('/passwordreset', (req, res, next) => {
+  
+    db.getUserByEmail(req.body.email)
+    .then(resolve =>{
+        if (resolve.length < 1){
+            throw Error (`User doesn't exist`);
+        }
+        else {
+            console.log( resolve[0]);
+            var token = signToken(resolve[0].id);
+            console.log(token,'token',req.headers.host,'host');
+            nodeMail(resolve[0],req.headers.host,token);
+
+        }}).catch(err => console.log(err));
+       
+});
 
 //Add new user and validate
 router.post('/register', [
@@ -177,6 +204,8 @@ router.post('/login', [
     });
 
 });
+
+
 //Add new topic and validate
 router.post('/topic', passport.authenticate(('jwt'), {
     session: false

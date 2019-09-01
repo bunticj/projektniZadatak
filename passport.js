@@ -1,11 +1,7 @@
 const JWTStrategy = require('passport-jwt').Strategy;
 const LocalStrategy = require('passport-local').Strategy;
-const {
-    ExtractJwt
-} = require('passport-jwt');
-const {
-    JWT_SECRET
-} = require('./configuration/scrt');
+const { ExtractJwt } = require('passport-jwt');
+const { JWT_SECRET } = require('./configuration/scrt');
 const dbClass = require('./core/database');
 const db = new dbClass();
 const bcrypt = require('bcryptjs');
