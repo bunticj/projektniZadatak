@@ -1,32 +1,22 @@
 const express = require('express');
 const router = express.Router();
+
 const dbClass = require('../core/database');
 const db = new dbClass();
+
 const {
     check,
     validationResult
 } = require('express-validator');
-//Authorization
 const passport = require('passport');
 require('../passport')(passport);
 const JWT = require('jsonwebtoken');
-const {
-    JWT_SECRET
-} = require('../configuration/scrt');
-const nodeMail = require('../configuration/mailService').nodeMail;
+const { JWT_SECRET } = require('../configuration/scrt').jwt;
+const mailer = require('../configuration/mailer');
 
 
-//ovu funkciju prebaciti negdje
-function signToken(id) {
 
-    return JWT.sign({
-        sub: id,
-        iat: new Date().getTime(),
-        exp: new Date().setDate(new Date().getDate() + 1)
-    }, JWT_SECRET);
-}
-
-//GET REQUESTS 
+//USER get requests 
 
 //register
 router.get('/register', (req, res, next) => {
@@ -44,72 +34,34 @@ router.get('/logout', function (req, res) {
     res.redirect('/');
 });
 
-
 //forgot pass
 router.get('/passwordreset', (req, res, next) => {
-    res.status(200).send('Do you want to reset your password? ');
+    res.status(200).send('Enter your email address if you have forgot your password ');
 });
 
+//get route sent in mail for password resset
+router.get('/reset/:token', (req, res, next) => {
+    res.status(200).send('Enter and confirm your new password ');
+});
 
+//get all users
 router.get('/user', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
-    db.getUsers().then(resolve => res.status(200).send(JSON.stringify(resolve)));
+    db.getUsers().then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
 });
 
-router.get('/topic', passport.authenticate('jwt', {
-    session: false
-}), (req, res, next) => {
-    db.getTopicList().then(resolve => res.status(200).send(JSON.stringify(resolve)));
-});
-
-//GET by ID
-router.get('/topic/:id', passport.authenticate('jwt', {
-    session: false
-}), (req, res, next) => {
-    let id = req.params.id;
-
-    db.getSingleTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve)));
-});
-
+//get one user with id
 router.get('/user/:id', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let id = req.params.id;
-    db.getSingleUser(id).then(resolve => res.status(200).send(JSON.stringify(resolve)));
-});
-
-//GET comments on topic with id : 
-router.get('/topic/:id/comment', passport.authenticate('jwt', {
-    session: false
-}), (req, res, next) => {
-    let id = req.params.id;
-    db.getCommentsOnTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+    db.getSingleUser(id).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
 });
 
 
 
-
-
-
-//POST REQUESTS
-
-router.post('/passwordreset', (req, res, next) => {
-  
-    db.getUserByEmail(req.body.email)
-    .then(resolve =>{
-        if (resolve.length < 1){
-            throw Error (`User doesn't exist`);
-        }
-        else {
-            console.log( resolve[0]);
-            var token = signToken(resolve[0].id);
-            console.log(token,'token',req.headers.host,'host');
-            nodeMail(resolve[0],req.headers.host,token);
-
-        }}).catch(err => console.log(err));
-       
-});
+//USER post requests
 
 //Add new user and validate
 router.post('/register', [
@@ -131,9 +83,7 @@ router.post('/register', [
                 throw new Error('Email address already in use');
             }
         });
-
     }),
-
     check('password')
     .not().isEmpty().withMessage('Field is empty')
     .isLength({
@@ -159,8 +109,6 @@ router.post('/register', [
             errors: errors.array()
         })
     }
-
-
     //call addUser ,create token
     db.addUser(req.body).then(resolve => {
         user_id = resolve.insertId;
@@ -173,7 +121,7 @@ router.post('/register', [
 });
 
 
-//login post 
+//login user
 router.post('/login', [
     check('email')
     .not().isEmpty().withMessage('Field is empty')
@@ -182,9 +130,6 @@ router.post('/login', [
     .not().isEmpty().withMessage('Field is empty')
 
 ], passport.authenticate('local', {
-    successRedirect: '/topic',
-    successMessage : 'Success',
-    failureMessage : 'Wrong credentials',
     failureRedirect: '/login',
     session: false
 }), (req, res, next) => {
@@ -206,6 +151,119 @@ router.post('/login', [
 });
 
 
+//send email to get a link to insert new password 
+router.post('/passwordreset', (req, res, next) => {
+
+    db.getUserByEmail(req.body.email)
+        .then(resolve => {
+            if (resolve.length < 1) {
+                throw Error(`User doesn't exist`);
+            } else {
+                console.log(resolve[0]);
+                var token = signToken(resolve[0].id);
+                console.log(token, ' <- token', req.headers.host, ' <- host');
+                mailer(resolve[0].email, token, req.headers.host).catch(err => {
+                    console.log(err);
+                });
+            }
+        })
+
+});
+
+//PATCH user requests
+
+//Update user,validate 
+router.patch('/user/:id', passport.authenticate(('jwt'), {
+    session: false
+}), [
+    check('first_name')
+    .isAlpha().withMessage('Must be alphabetical chars'),
+
+    check('last_name')
+    .isAlpha().withMessage('Must be alphabetical chars'),
+], (req, res, next) => {
+    let id = parseInt(req.params.id);
+    let parsedTokenId = parseInt(user.id);
+
+    if (id === parsedTokenId) {
+        db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+    } else {
+        throw Error('Unauthorized');
+    }
+
+});
+
+//update user password,find id from token
+router.patch('/reset/:token', [
+    check('password')
+    .not().isEmpty().withMessage('Field is empty')
+    .isLength({
+        min: 8
+    }).withMessage('Password is required to have minimum 8 characters'),
+
+    check('confirmPassword')
+    .not().isEmpty().withMessage('Field is empty')
+    .custom((value, {
+        req
+    }) => value === req.body.password).withMessage("Passwords don't match")
+], (req, res, next) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        console.log(errors);
+        return res.status(400).json({
+            errors: errors.array()
+        })
+    }
+
+    let token = req.params.token;
+    let decoded = JWT.verify(token, JWT_SECRET);
+    console.log(decoded.sub);
+
+    db.getSingleUser(decoded.sub).then(resolve => {
+        console.log(resolve[0].id);
+
+        db.resetPassword(req.body, decoded.sub).then(result => {
+            console.log(result);
+            res.status(200).send(JSON.stringify(result));
+        }).catch(err => console.log(err));
+
+
+    })
+})
+
+//DELETE user request
+router.delete('/user/:id', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+    var parsedId = parseInt(req.params.id);
+    var parsedToken = parseInt(user.id)
+
+    if (parsedId === parsedToken) {
+        console.log(parsedId, parsedToken);
+        db.removeUser(parsedId).
+        then(resolve => res.status(200).send(JSON.stringify(resolve)));
+    } else {
+        console.log(parsedId, parsedToken);
+        throw Error('Unauthorized');
+    }
+});
+
+
+//GET topic
+router.get('/topic', passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
+    db.getTopicList().then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+});
+
+//GET topic by ID
+router.get('/topic/:id', passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
+    let id = req.params.id;
+    db.getSingleTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+});
+
 //Add new topic and validate
 router.post('/topic', passport.authenticate(('jwt'), {
     session: false
@@ -226,6 +284,53 @@ router.post('/topic', passport.authenticate(('jwt'), {
     db.addTopic(req.body, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
 });
 
+//update topic
+router.patch('/topic/:id', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+    var parsedTokenId = parseInt(user.id);
+    var parsedTopicId = parseInt(req.params.id);
+
+    db.getSingleTopic(req.params.id).then(resolve => {
+        var topicObj = resolve[0];
+        if (topicObj.user_id === parsedTokenId) {
+            console.log('Condition passed,user can update this topic');
+            db.updateTopic(req.body, parsedTopicId).then(result => res.status(200).send(JSON.stringify(result)));
+        } else {
+            throw Error('Unauthorized');
+        }
+    })
+
+});
+
+//delete topic
+router.delete('/topic/:id', passport.authenticate(('jwt'), {
+    session: false
+}), (req, res, next) => {
+    var parsedTokenId = parseInt(user.id);
+
+    db.getSingleTopic(req.params.id).then(resolve => {
+        var topicObj = resolve[0];
+
+        if (topicObj.user_id === parsedTokenId) {
+            console.log('Condition passed,user can delete this topic');
+            db.removeTopic(req.params.id).then(result => res.status(200).send(JSON.stringify(result)));
+        } else {
+            throw Error('Unauthorized');
+        }
+    })
+
+});
+
+
+
+//Get comments on topic with id : 
+router.get('/topic/:id/comment', passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
+    let id = req.params.id;
+    db.getCommentsOnTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+});
 
 
 //Add new comment and validate 
@@ -247,48 +352,7 @@ router.post('/topic/:id/comment', passport.authenticate(('jwt'), {
     db.addComment(req.body, req.params.id, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
 });
 
-
-
-//PATCH REQUESTS
-//Update user,validate 
-router.patch('/user/:id', passport.authenticate(('jwt'), {
-        session: false
-    }), [
-        check('first_name')
-        .isAlpha().withMessage('Must be alphabetical chars'),
-
-        check('last_name')
-        .isAlpha().withMessage('Must be alphabetical chars'),
-    ], (req, res, next) => {
-        let id = parseInt(req.params.id);
-        let parsedTokenId = parseInt(user.id);
-
-        if (id === parsedTokenId) {
-            db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
-        } else {
-            throw Error('Unauthorized');
-        }
-
-    });
-
-router.patch('/topic/:id', passport.authenticate(('jwt'), {
-    session: false
-}), (req, res, next) => {
-    var parsedTokenId = parseInt(user.id);
-    var parsedTopicId = parseInt(req.params.id);
-
-    db.getSingleTopic(req.params.id).then(resolve => {
-        var topicObj = resolve[0];
-        if (topicObj.user_id === parsedTokenId) {
-            console.log('Condition passed,user can update this topic');
-            db.updateTopic(req.body, parsedTopicId).then(result => res.status(200).send(JSON.stringify(result)));
-        } else {
-            throw Error('Unauthorized');
-        }
-    })
-
-});
-
+//Update comment
 router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt'), {
     session: false
 }), (req, res, next) => {
@@ -307,47 +371,7 @@ router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt')
 
 });
 
-
-
-
-//DELETE REQUESTS
-//Delete user
-router.delete('/user/:id', passport.authenticate(('jwt'), {
-    session: false
-}), (req, res, next) => {
-    var parsedId = parseInt(req.params.id);
-    var parsedToken = parseInt(user.id)
-
-    if (parsedId === parsedToken) {
-        console.log(parsedId, parsedToken);
-        db.removeUser(parsedId).
-        then(resolve => res.status(200).send(JSON.stringify(resolve)));
-    } else {
-        console.log(parsedId, parsedToken);
-        throw Error('Unauthorized');
-    }
-});
-
-router.delete('/topic/:id', passport.authenticate(('jwt'), {
-    session: false
-}), (req, res, next) => {
-    var parsedTokenId = parseInt(user.id);
-
-    db.getSingleTopic(req.params.id).then(resolve => {
-        var topicObj = resolve[0];
-
-        if (topicObj.user_id === parsedTokenId) {
-            console.log('Condition passed,user can delete this topic');
-            db.removeTopic(req.params.id).then(result => res.status(200).send(JSON.stringify(result)));
-        } else {
-            throw Error('Unauthorized');
-        }
-    })
-
-});
-
-
-
+//delete comment
 router.delete('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt'), {
     session: false
 }), (req, res, next) => {
@@ -367,6 +391,15 @@ router.delete('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt'
 });
 
 
+//signToken with users ID
+function signToken(id) {
+
+    return JWT.sign({
+        sub: id,
+        iat: new Date().getTime(),
+        exp: new Date().setDate(new Date().getDate() + 1)
+    }, JWT_SECRET);
+}
 
 
 

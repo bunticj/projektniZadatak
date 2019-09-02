@@ -73,7 +73,7 @@ module.exports = class DB {
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT title FROM topic LIMIT 20`;
+    let sqlQuery = `SELECT *  FROM topic ORDER BY created_at desc LIMIT 20`;
     this.connection.query(sqlQuery, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -172,7 +172,24 @@ module.exports = class DB {
 
     return pr;
   }
+  //Reset password
+  resetPassword(data, id) {
+    let prResolve;
+    let pr = new Promise((resolve, reject) => {
+      prResolve = resolve;
+    });
+    bcrypt.hash(data.password, 10, (err, hash) => {
 
+    let sqlQuery = `UPDATE user SET password = ?  WHERE id = ?`
+    
+    let params = [hash,id];
+    this.connection.query(sqlQuery,params, (error, result) => {
+      if (error) throw error;
+      prResolve(result);
+    });
+  });
+    return pr;
+  }
   //Update topic
   updateTopic(data, id) {
     let prResolve;
