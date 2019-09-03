@@ -248,7 +248,7 @@ router.delete('/user/:id', passport.authenticate(('jwt'), {
     }
 });
 
-
+//TOPICS
 //GET list of topics(without comments)
 router.get('/topic', passport.authenticate('jwt', {
     session: false
@@ -269,11 +269,25 @@ router.get('/topics', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let page = parseInt(req.query.page || 1);
-    let limit = parseInt(req.query.limit || 10);
-    let offset = (page -1 ) * limit;
+    let size = parseInt(req.query.size || 10);
+    let offset = (page -1 ) * size;
  
+    db.getNumOfRows().then(result => {
+        let rowNum = parseInt(result[0].row_num);
+        console.log(rowNum);
+        db.getTopicsByPage(size,offset).then(resolve => {
+            res.status(200).json({
+                result : resolve,
+                totalPages : Math.ceil(rowNum/size),
+                currentPage : page,
+                pageSize : size
 
-    db.getTopicsByPage(limit,offset).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+
+            });
+        })
+        
+    }).catch(err =>console.log(err))
+    //db.getTopicsByPage(limit,offset).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
 });
 
 
