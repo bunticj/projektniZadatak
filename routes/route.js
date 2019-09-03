@@ -30,7 +30,6 @@ router.get('/login', (req, res, next) => {
 
 //logout
 router.get('/logout', function (req, res) {
-    req.logout();
     res.redirect('/');
 });
 
@@ -109,7 +108,7 @@ router.post('/register', [
             errors: errors.array()
         })
     }
-    //call addUser ,create token
+    //call addUser and create token
     db.addUser(req.body).then(resolve => {
         user_id = resolve.insertId;
         const token = signToken(user_id);
@@ -117,7 +116,7 @@ router.post('/register', [
             token,
             message: 'User created'
         });
-    })
+    }).catch(err => console.log(err));
 });
 
 
@@ -146,7 +145,7 @@ router.post('/login', [
             token,
             message: "Authentication successful"
         });
-    });
+    }).catch(err => console.log(err));
 
 });
 
@@ -186,7 +185,8 @@ router.patch('/user/:id', passport.authenticate(('jwt'), {
     let parsedTokenId = parseInt(user.id);
 
     if (id === parsedTokenId) {
-        db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)));
+        db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)))
+        .catch(err => console.log(err));
     } else {
         throw Error('Unauthorized');
     }

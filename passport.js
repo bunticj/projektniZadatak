@@ -44,6 +44,7 @@ module.exports = function (passport) {
                 } else {
                     const hash = resolve[0].password.toString();
                     const user = JSON.stringify(resolve[0]);
+                    
                      bcrypt.compare(password, hash,function(err,res){
                          if (res === true){
                             console.log('bcrypt pass compare is true');

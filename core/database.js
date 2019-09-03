@@ -73,7 +73,7 @@ module.exports = class DB {
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT *  FROM topic ORDER BY created_at desc LIMIT 20`;
+    let sqlQuery = `SELECT *  FROM topic ORDER BY created_at desc `;
     this.connection.query(sqlQuery, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -86,7 +86,6 @@ module.exports = class DB {
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    //Mislio sam izlistati i komentare i usera ,ali ukoliko neka tema nema komentara,nece mi je izlistati uopce  kada je trazim po ID-u
     /* let sqlQuery = `SELECT t.title,t.content,u.first_name ,u.last_name,c.comment_content FROM topic as t 
      INNER JOIN comment as c ON t.topic_id = c.topic_id INNER JOIN user as u ON t.user_id = u.id WHERE t.topic_id = ?`;*/
     let sqlQuery = `SELECT * FROM topic WHERE  topic_id = ?`;
@@ -131,7 +130,7 @@ module.exports = class DB {
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT * FROM comment INNER JOIN topic ON topic.topic_id = comment.topic_id WHERE comment.topic_id = ? LIMIT 20`;
+    let sqlQuery = `SELECT * FROM comment INNER JOIN topic ON topic.topic_id = comment.topic_id WHERE comment.topic_id = ? LIMIT 30`;
     this.connection.query(sqlQuery, id, (error, result) => {
       if (error) throw error;
       prResolve(result);
@@ -222,7 +221,7 @@ module.exports = class DB {
     return pr;
   }
 
-  //DELETE operations
+//DELETE OPERATIONS 
 
   //Delete user
   removeUser(id) {
