@@ -249,7 +249,7 @@ router.delete('/user/:id', passport.authenticate(('jwt'), {
 });
 
 
-//GET topic
+//GET list of topics(without comments)
 router.get('/topic', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
@@ -263,6 +263,20 @@ router.get('/topic/:id', passport.authenticate('jwt', {
     let id = req.params.id;
     db.getSingleTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
 });
+
+//Pagination for topics(including the comments)
+router.get('/topics', passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
+    let page = parseInt(req.query.page || 1);
+    let limit = parseInt(req.query.limit || 10);
+    let offset = (page -1 ) * limit;
+ 
+
+    db.getTopicsByPage(limit,offset).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+});
+
+
 
 //Add new topic and validate
 router.post('/topic', passport.authenticate(('jwt'), {

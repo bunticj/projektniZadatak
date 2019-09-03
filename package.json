@@ -1,7 +1,7 @@
 {
   "name": "projektnizadatak",
   "version": "1.0.0",
-  "description": "",
+  "description": "Forum rest api with express ,mysql ...",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

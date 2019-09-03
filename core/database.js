@@ -73,13 +73,36 @@ module.exports = class DB {
     let pr = new Promise((resolve, reject) => {
       prResolve = resolve;
     });
-    let sqlQuery = `SELECT *  FROM topic ORDER BY created_at desc `;
+    let sqlQuery = `SELECT *  FROM topic ORDER BY topic_created_at desc `;
     this.connection.query(sqlQuery, (error, result) => {
       if (error) throw error;
       prResolve(result);
     });
     return pr;
   }
+ //Topics for pagination
+ getTopicsByPage(limit,offset){
+
+  let prResolve;
+  let pr = new Promise((resolve,reject) => {
+    prResolve = resolve;
+  });
+  let sqlQuery = 
+  `SELECT t.topic_id, u.first_name as top_cr_name, u.last_name AS top_cr_lastname , t.title ,t.content,t.topic_created_at ,c.comment_content ,c.com_created_at,c.user_id as c_creator_id,user.first_name as com_cr_name, user.last_name as com_cr_lastname, c.com_created_at ,c.comment_id
+  FROM topic as t 
+  LEFT JOIN comment as c ON t.topic_id = c.topic_id  
+  LEFT JOIN user as u ON t.user_id = u.id 
+  LEFT JOIN user ON c.user_id = user.id
+  ORDER BY t.topic_created_at DESC
+  LIMIT ${limit} OFFSET ${offset}`;
+  let queryParams = [limit,offset]
+  this.connection.query(sqlQuery, queryParams, (error, result) => {
+    if (error) throw error;
+    prResolve(result);
+  });
+  return pr;
+}
+
   //Get topic by id
   getSingleTopic(id) {
     let prResolve;
@@ -281,6 +304,7 @@ module.exports = class DB {
     return pr;
   }
 
+ 
 
   
 
