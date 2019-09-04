@@ -173,6 +173,7 @@ router.post('/passwordreset', (req, res, next) => {
                 mailer(resolve[0].email, token, req.headers.host).catch(err => {
                     console.log(err);
                 });
+                res.status(200).send('Email is sent to your address. When it arrives,just follow the link to change your password');
             }
         })
 
