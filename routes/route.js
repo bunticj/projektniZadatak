@@ -49,7 +49,10 @@ router.get('/reset/:token', (req, res, next) => {
 router.get('/user', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
-    db.getUsers().then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+    db.getUsers().then(resolve =>{ 
+        console.log(resolve);
+        res.status(200).send(JSON.stringify(resolve));
+    }).catch(err => console.log(err));
 });
 
 //get one user with id
@@ -57,9 +60,11 @@ router.get('/user/:id', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let id = req.params.id;
-    db.getSingleUser(id).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+    db.getSingleUser(id).then(resolve => {
+        console.log(resolve);
+        res.status(200).send(JSON.stringify(resolve));
+    }).catch(err => console.log(err));
 });
-
 
 
 //USER post requests
@@ -114,6 +119,7 @@ router.post('/register', [
     db.addUser(req.body).then(resolve => {
         user_id = resolve.insertId;
         const token = signToken(user_id);
+       console.log(resolve);
         res.status(201).json({
             token,
             message: 'User created'
@@ -143,6 +149,7 @@ router.post('/login', [
     }
     db.getUserByEmail(req.body.email).then(resolve => {
         const token = signToken(resolve[0].id);
+        console.log(resolve);
         res.status(200).json({
             token,
             message: "Authentication successful"
@@ -187,7 +194,10 @@ router.patch('/user/:id', passport.authenticate(('jwt'), {
     let parsedTokenId = parseInt(user.id);
 
     if (id === parsedTokenId) {
-        db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)))
+        db.updateUser(req.body, parsedTokenId).then(resolve => {
+           console.log(resolve);
+            res.status(200).send(JSON.stringify(resolve));
+        })
             .catch(err => console.log(err));
     } else {
         throw Error('Unauthorized');
@@ -317,6 +327,7 @@ router.get('/commentSearch', passport.authenticate('jwt', {
     let comment = req.query.comment;
     if (comment !== undefined) {
         db.searchByCommentText(comment).then(resolve => {
+            console.log(resolve);
             res.status(200).json({
                 result: resolve,
                 numResultsFound: resolve.length
@@ -346,8 +357,10 @@ router.post('/topic', passport.authenticate(('jwt'), {
             errors: errors.array()
         })
     }
-    console.log()
-    db.addTopic(req.body, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
+    db.addTopic(req.body, user.id).then(resolve => {
+        console.log(resolve);
+        res.status(201).send(JSON.stringify(resolve));
+    }).catch(err => console.log(err));
 });
 
 //update topic
@@ -359,9 +372,13 @@ router.patch('/topic/:id', passport.authenticate(('jwt'), {
 
     db.getSingleTopic(req.params.id).then(resolve => {
         var topicObj = resolve[0];
+        
         if (topicObj.user_id === parsedTokenId) {
             console.log('Condition passed,user can update this topic');
-            db.updateTopic(req.body, parsedTopicId).then(result => res.status(200).send(JSON.stringify(result)));
+            db.updateTopic(req.body, parsedTopicId).then(result => {
+                console.log(result);
+                res.status(200).send(JSON.stringify(result));
+            });
         } else {
             throw Error('Unauthorized');
         }
@@ -395,7 +412,10 @@ router.get('/topic/:id/comment', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
     let id = req.params.id;
-    db.getCommentsOnTopic(id).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+    db.getCommentsOnTopic(id).then(resolve => {
+        console.log(resolve);
+        res.status(200).send(JSON.stringify(resolve));
+    }).catch(err => console.log(err));
 });
 
 
@@ -415,7 +435,10 @@ router.post('/topic/:id/comment', passport.authenticate(('jwt'), {
 
         });
     }
-    db.addComment(req.body, req.params.id, user.id).then(resolve => res.status(201).send(JSON.stringify(resolve)));
+    db.addComment(req.body, req.params.id, user.id).then(resolve =>{
+        console.log(resolve);
+     res.status(201).send(JSON.stringify(resolve));
+    }).catch(err => console.log(err));
 });
 
 //Update comment
@@ -429,7 +452,11 @@ router.patch('/topic/:topicId/comment/:commentId', passport.authenticate(('jwt')
         if (commentObj.user_id === parsedTokenId) {
             console.log('User can update this comment');
             db.updateComment(req.body, req.params.commentId)
-                .then(result => res.status(200).send(JSON.stringify(result)));
+                .then(result =>{
+                    console.log(result);
+
+                 res.status(200).send(JSON.stringify(result));
+                }).catch(err => console.log(err));
         } else {
             throw Error('Unauthorized');
         }

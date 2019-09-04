@@ -7,7 +7,7 @@ module.exports = class DB {
       host: 'localhost',
       user: 'root',
       password: '',
-      database: 'forumdb'
+      database: 'dbforum'
     });
   }
 
