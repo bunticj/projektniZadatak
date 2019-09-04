@@ -17,8 +17,6 @@ npm run start
 ```
 
 
-
-
 ### Folders and files explanation
 
 #### Root folder
@@ -157,4 +155,23 @@ req.body : {
 	comment_content : 'updated content'
 
 }, update comment . the one who created it,he can update it
+```
+```
+router.get('/topics') , example :('/topics?page=1&size=10')
+req.query.page  : int value or default 1,
+req.query.size : int value of default 10
+
+,pagination with default values
+```
+
+```
+router.get('/topicSearch') , example :
+req.query.title : 'string value to search topics by title'
+,search
+```
+
+```
+router.get('/commentSearch') , example :
+req.query.comment : 'string value to search by comment content'
+,search
 ```
