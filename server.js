@@ -4,7 +4,7 @@ const router = require('./routes/route');
 const logger = require('morgan');
 const port = process.env.PORT || 3300;
 const passport = require('passport');
-
+const cors = require('cors');
 app = express();
 
 //Middlewares
@@ -14,6 +14,7 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(bodyParser.json());
 app.use(passport.initialize());
+app.use(cors());
 
 //Routes
 app.use(router);
