@@ -273,7 +273,7 @@ router.get('/topics', passport.authenticate('jwt', {
     let page = parseInt(req.query.page || 1);
     let size = parseInt(req.query.size || 10);
     let offset = (page - 1) * size;
-    
+
     //calculate total pages
     db.getNumOfRows().then(result => {
         let rowNum = parseInt(result[0].row_num);
@@ -292,42 +292,42 @@ router.get('/topics', passport.authenticate('jwt', {
 });
 
 //search by comment text and by topic title
-router.get('/search', passport.authenticate('jwt', {
+router.get('/topicSearch', passport.authenticate('jwt', {
     session: false
 }), (req, res, next) => {
-    let commentText = req.query.commentText;
-    let topicTitle = req.query.topicTitle;
-    if (topicTitle) {
-        db.searchByTopicTitle(topicTitle).then(resolve => {
-            if (resolve.length > 0) {
-                console.log(resolve);
-                res.status(200).json({
-                    result: resolve,
-                    numResultsFound: resolve.length
-                    
-                });
-            } else {
-                res.send('No topics found');
-            }
-        }).catch(err => console.log(err));
-    } 
-    else if (commentText){
-        console.log(resolve);
-
-        db.searchByCommentText(commentText).then(resolve => {
+    let title = req.query.title;
+    if (title !== undefined) {
+        db.searchByTopicTitle(title).then(resolve => {
+            console.log(resolve);
             res.status(200).json({
                 result: resolve,
                 numResultsFound: resolve.length
-                
             });
         });
-    }
-    else {
-        console.log('Search by topic title OR comment content');
-        next();
+    } else {
+        res.send('Search field is empty');
     }
 
 });
+
+
+router.get('/commentSearch', passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
+    let comment = req.query.comment;
+    if (comment !== undefined) {
+        db.searchByCommentText(comment).then(resolve => {
+            res.status(200).json({
+                result: resolve,
+                numResultsFound: resolve.length
+            });
+        });
+    } else {
+        res.send('Search field is empty');
+    }
+
+});
+
 
 
 //Add new topic and validate

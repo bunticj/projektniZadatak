@@ -21,7 +21,7 @@ module.exports = function (passport) {
                 user = resolve[0]; 
             });
             if (!user) {
-                console.log('user u jwt strategiji ne postoji');
+                console.log('Unauthorized');
                 return done(null, false);
             }
             done(null, {user});
