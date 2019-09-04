@@ -11,7 +11,9 @@ const {
 const passport = require('passport');
 require('../passport')(passport);
 const JWT = require('jsonwebtoken');
-const { JWT_SECRET } = require('../configuration/scrt').jwt;
+const {
+    JWT_SECRET
+} = require('../configuration/scrt').jwt;
 const mailer = require('../configuration/mailer');
 
 
@@ -186,7 +188,7 @@ router.patch('/user/:id', passport.authenticate(('jwt'), {
 
     if (id === parsedTokenId) {
         db.updateUser(req.body, parsedTokenId).then(resolve => res.status(200).send(JSON.stringify(resolve)))
-        .catch(err => console.log(err));
+            .catch(err => console.log(err));
     } else {
         throw Error('Unauthorized');
     }
@@ -270,26 +272,62 @@ router.get('/topics', passport.authenticate('jwt', {
 }), (req, res, next) => {
     let page = parseInt(req.query.page || 1);
     let size = parseInt(req.query.size || 10);
-    let offset = (page -1 ) * size;
- 
+    let offset = (page - 1) * size;
+    
+    //calculate total pages
     db.getNumOfRows().then(result => {
         let rowNum = parseInt(result[0].row_num);
-        console.log(rowNum);
-        db.getTopicsByPage(size,offset).then(resolve => {
+        //console.log(rowNum);
+        db.getTopicsByPage(size, offset).then(resolve => {
+            console.log(resolve);
             res.status(200).json({
-                result : resolve,
-                totalPages : Math.ceil(rowNum/size),
-                currentPage : page,
-                pageSize : size
-
-
+                result: resolve,
+                totalPages: Math.ceil(rowNum / size),
+                currentPage: page,
+                pageSize: size
             });
-        })
-        
-    }).catch(err =>console.log(err))
-    //db.getTopicsByPage(limit,offset).then(resolve => res.status(200).send(JSON.stringify(resolve))).catch(err => console.log(err));
+        }).catch(err => console.log(err))
+
+    }).catch(err => console.log(err))
 });
 
+//search by comment text and by topic title
+router.get('/search', passport.authenticate('jwt', {
+    session: false
+}), (req, res, next) => {
+    let commentText = req.query.commentText;
+    let topicTitle = req.query.topicTitle;
+    if (topicTitle) {
+        db.searchByTopicTitle(topicTitle).then(resolve => {
+            if (resolve.length > 0) {
+                console.log(resolve);
+                res.status(200).json({
+                    result: resolve,
+                    numResultsFound: resolve.length
+                    
+                });
+            } else {
+                res.send('No topics found');
+            }
+        }).catch(err => console.log(err));
+    } 
+    else if (commentText){
+        console.log(resolve);
+
+        db.searchByCommentText(commentText).then(resolve => {
+            res.status(200).json({
+                result: resolve,
+                numResultsFound: resolve.length
+                
+            });
+        });
+    }
+    else {
+        console.log('Search by topic title OR comment content');
+        next();
+    }
+
+});
 
 
 //Add new topic and validate

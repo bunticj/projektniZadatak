@@ -102,7 +102,44 @@ module.exports = class DB {
   });
   return pr;
 }
+searchByTopicTitle(searchQuery){
+  let prResolve;
+  let pr = new Promise((resolve,reject) => {
+    prResolve = resolve;
+  });
+  let sqlQuery = `SELECT t.topic_id, u.first_name as top_cr_name, u.last_name AS top_cr_lastname , t.title ,t.content,t.topic_created_at ,c.comment_content ,
+  c.com_created_at,c.user_id as c_creator_id,user.first_name as com_cr_name, user.last_name as com_cr_lastname, c.com_created_at ,c.comment_id
+   FROM topic as t 
+   LEFT JOIN comment as c ON t.topic_id = c.topic_id 
+  LEFT JOIN user as u ON t.user_id = u.id
+   LEFT JOIN user ON c.user_id = user.id WHERE t.title LIKE '%${searchQuery}%' ORDER BY t.topic_created_at DESC LIMIT 10`;
+  this.connection.query(sqlQuery,searchQuery, (error, result) => {
+    if (error) throw error;
+    prResolve(result);
+  });
+  return pr;
+}
+searchByCommentText(searchQuery){
 
+  let prResolve;
+  let pr = new Promise((resolve,reject) => {
+    prResolve = resolve;
+  });
+  let sqlQuery = `SELECT t.topic_id, u.first_name as top_cr_name, u.last_name AS top_cr_lastname , t.title ,t.content,t.topic_created_at ,c.comment_content ,
+  c.com_created_at,c.user_id as c_creator_id,user.first_name as com_cr_name, user.last_name as com_cr_lastname, c.com_created_at ,c.comment_id
+   FROM topic as t 
+   LEFT JOIN comment as c ON t.topic_id = c.topic_id 
+  LEFT JOIN user as u ON t.user_id = u.id
+   LEFT JOIN user ON c.user_id = user.id WHERE c.comment_content LIKE '%${searchQuery}%' ORDER BY c.com_created_at DESC LIMIT 10`;
+  this.connection.query(sqlQuery,searchQuery, (error, result) => {
+    if (error) throw error;
+    prResolve(result);
+  });
+  return pr;
+
+
+
+}
 getNumOfRows(){
   let prResolve;
   let pr = new Promise((resolve,reject) => {
