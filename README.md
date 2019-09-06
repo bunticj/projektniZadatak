@@ -58,9 +58,9 @@ projektniZadatak/core/database.js
 database connection configuration and queries with crud operations which will be called in routes.js file
 
 ```
-projektniZadatak/core/sql-phpmyadmin.js
+projektniZadatak/core/dbCreate.sql
 ```
-queries for creating database and tables,since is done in phpmyadmin they are commented inside of this file
+queries for creating database and tables done in phpmyadmin since the database is running locally
 
 
 #### Routes folder
