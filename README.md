@@ -2,7 +2,7 @@
  REST API
 ## Global dependancies
 ```
-sql server for database
+mySQL server
 node.js
 npm
 
@@ -21,7 +21,6 @@ npm run dev
 ```
 npm run start
 ```
-clear
 
 
 ### Folders and files explanation
