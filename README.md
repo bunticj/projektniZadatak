@@ -75,17 +75,17 @@ My database for this api, which is running locally .Not sure is it neccessary ,b
 projektniZadatak/routes/route.js
 ```
  all routes in this rest api. Inside of the file there are simple comments on what it does.
- Here is the explanation of parameters for http requests.
+ Here is the explanation of parameters for most http requests.
 
 ```
-#####Req.headers
+--Req.headers
 
  content-type : application/json
 
 (for protected routes)
- authorization : tokenValue    ,*you don't need 'Bearer' keyword with tokens value
- ```
- 
+ authorization : tokenValue    
+ ``` *you don't need 'Bearer' keyword with tokens value
+
  
 
 ```
