@@ -2,9 +2,10 @@
  REST API
 ## Global dependancies
 ```
+sql server for database
 node.js
 npm
-server for database to run locally(Apache)
+
 ```
 ## Project setup
 ```
@@ -20,6 +21,7 @@ npm run dev
 ```
 npm run start
 ```
+clear
 
 
 ### Folders and files explanation
@@ -59,9 +61,10 @@ projektniZadatak/core/database.js
 database connection configuration and queries with crud operations which will be called in routes.js file
 
 ```
-projektniZadatak/core/dbCreate.sql
+projektniZadatak/core/dbforum.sql
 ```
-queries for creating database and tables done in phpmyadmin since the database is running locally
+database made in phpmyadmin 
+
 
 ```
 projektniZadatak/core/dbforum.sql
@@ -73,11 +76,13 @@ My database for this api, which is running locally .Not sure is it neccessary ,b
 projektniZadatak/routes/route.js
 ```
  all routes in this rest api. Inside of the file there are simple comments on what it does.
- Here is the explanation of parameters for post and patch requests.
+ Here is the explanation of parameters for http requests.
 
  Req.headers : 
  content-type : application/json
- authorization : tokenValue (for protected routes)   *you don't need 'Bearer' keyword with tokens value
+
+(for protected routes)
+ authorization : tokenValue    *you don't need 'Bearer' keyword with tokens value
  
 
 ```
