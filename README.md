@@ -84,8 +84,8 @@ projektniZadatak/routes/route.js
 
 (for protected routes)
  authorization : tokenValue    
- ``` *you don't need 'Bearer' keyword with tokens value
-
+ ``` 
+*you don't need 'Bearer' keyword with tokens value
  
 
 ```
