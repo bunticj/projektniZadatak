@@ -1,0 +1,33 @@
+ version: '3'
+
+services:
+ 
+  database:
+      container_name: database
+      build : ./database
+      restart: always
+      ports :
+        - '3306:3306'
+
+      networks :
+        - apinetwork
+
+      
+     
+      
+  app:
+      container_name: forum
+      build: .
+      restart: always
+
+      ports:
+        - '80:3300'
+      depends_on : 
+       - database
+        networks :
+        - apinetwork
+ 
+
+  networks:
+    apinetwork:
+      driver: bridge
