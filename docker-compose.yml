@@ -1,33 +1,45 @@
- version: '3'
-
+version: '3'
 services:
- 
   database:
-      container_name: database
-      build : ./database
-      restart: always
-      ports :
-        - '3306:3306'
+    container_name: database
+    build: ./core
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: dbForum
+      DATABASE_HOST: database
+    ports:
+      - 3306:3306
+    volumes:
+      - myvol:/data 
+    networks:
+      - mynet
+    
+    
 
-      networks :
-        - apinetwork
-
-      
-     
-      
   app:
-      container_name: forum
-      build: .
-      restart: always
+    container_name: forum
+    build: .
+    environment:
+      DATABASE_HOST: database
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: dbForum
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: root
+    ports:
+      - 3300:3300
+    depends_on:
+      - database    
+    networks:
+      - mynet
+    links: 
+     - database
+    restart: on-failure
 
-      ports:
-        - '80:3300'
-      depends_on : 
-       - database
-        networks :
-        - apinetwork
- 
+networks:
+  mynet:
 
-  networks:
-    apinetwork:
-      driver: bridge
+volumes:
+  myvol:

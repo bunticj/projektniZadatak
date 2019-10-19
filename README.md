@@ -1,23 +1,28 @@
 # projektniZadatak
  REST API
-## Global dependancies
+
+## docker-compose up
+This command will be enough to start the project with docker. 
+
+## Alternative solution without docker:
+
 ```
 mySQL server
 node.js
 npm
 
 ```
-## Project setup
+#### Project setup
 ```
 npm install
 ```
 
-### Compile for development
+#### Compile for development
 ```
 npm run dev
 ```
 
-### Compile and starts main file
+#### Compile and starts main file
 ```
 npm run start
 ```

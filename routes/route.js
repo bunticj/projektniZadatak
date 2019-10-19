@@ -229,7 +229,7 @@ router.patch('/reset/:token', [
     }
 
     let token = req.params.token;
-    let decoded = JWT.verify(token, JWT_SECRET);
+    let decoded = JWT.verify(token,  JWT_SECRET);
     console.log(decoded.sub);
 
     db.getSingleUser(decoded.sub).then(resolve => {

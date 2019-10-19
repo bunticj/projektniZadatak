@@ -1,5 +1,6 @@
-FROM mysql/mysql-server
+FROM mysql:5.7
 
-ADD dbcreate.sql /docker-entrypoint-initdb.d
+EXPOSE 3306 
 
-EXPOSE 3306
+COPY dbcreate.sql /docker-entrypoint-initdb.d
+
